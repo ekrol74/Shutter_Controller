@@ -1,9 +1,8 @@
-/* Arduino code - Example of how to use a single push-button to cycle through a number of choices. This example code uses functions to:
+/* Arduino code - To use a single pulse to cycle through a number of choices. This code uses functions to:
 ** debounce the button
 ** check the state of the button
-** keep track of the current selection of the push button (in this case 1, 2, 3, 4, or 5)
-** turn on an LED on the board that corresponds to the button selection
-** a dummy function is included that can be used to set the condition of some device (motor speed, servo position, etc...) that corresponds to the button choice.
+** keep track of the current selection of the pulse (in this case 0, 1, 2, 3)
+** cycle to output relays that correspond an action of the shutter, open, pause, close, pause.
 */
 
 // global variables
@@ -15,15 +14,15 @@ boolean stateChange  = false;
 
 int currentButton = 0;
 int lastButton    = 4;
-int ledArray[]    = {9, 10, 11, 12};
-long previousMillis = 0;
+int relaisArray[]    = {9, 10, 11, 12};
+unsigned long previousMillis = 0;
 long interval = 1000 ;
 
 // setup
 void setup() {
   pinMode(buttonPin, INPUT);
   for (int i=0; i<5; i++){
-    pinMode(ledArray[i],OUTPUT);
+    pinMode(relaisArray[i],OUTPUT);
   }
   Serial.begin(9600);
 }
@@ -84,10 +83,8 @@ int getButtonNumber(int button, boolean state, boolean change)
 void indicatorLight(int button)
 {
   for (int i=0; i<4; i++) {
-    digitalWrite(ledArray[i], LOW);
+    digitalWrite(relaisArray[i], LOW);
   }
-  digitalWrite(ledArray[button], HIGH);
+  digitalWrite(relaisArray[button], HIGH);
 
 }
-
-// function motorbreak
