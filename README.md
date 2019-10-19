@@ -1,2 +1,2 @@
-# Shutter_Controller_1
+# Shutter_Controller
 Open and close shutter by pulse with arduino and RFID
