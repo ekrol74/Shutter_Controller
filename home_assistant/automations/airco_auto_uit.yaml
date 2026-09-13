@@ -1,0 +1,81 @@
+# =============================================================================
+# Airco automatisch uitschakelen  (Home Assistant)
+# =============================================================================
+# Luc vergeet zijn airco regelmatig uit te zetten. Deze automatisering zet de
+# airco uit zodra koelen geen zin meer heeft:
+#
+#   * ruimtetemperatuur  <  23 °C
+#   * buitentemperatuur  <= 25 °C   ("niet warmer dan 25 °C")
+#
+# Beide voorwaarden moeten 90 minuten onafgebroken gelden. Valt er tussendoor
+# één weg, dan begint de 90 minuten opnieuw.
+#
+# Uitzondering: staat de airco in DROOG (`dry`) mode, dan blijft hij gewoon
+# draaien. Ontvochtigen is geen koelvraag en loopt dus door, net als de
+# overige algemene automatiseringen.
+#
+# -----------------------------------------------------------------------------
+# AANPASSEN VOOR GEBRUIK — vervang deze drie entity_id's door je eigen:
+#   climate.airco_luc             ->  de airco (climate-entiteit)
+#   sensor.kamer_temperatuur_luc  ->  ruimtetemperatuursensor
+#   sensor.buiten_temperatuur     ->  buitentemperatuursensor
+# -----------------------------------------------------------------------------
+# Plaatsing: plak het blok in `automations.yaml`, of houd dit losse bestand aan
+# met in `configuration.yaml`:
+#   automation split: !include_dir_list home_assistant/automations/
+#
+# Syntax: HA 2024.10+ (triggers/conditions/actions). Op oudere versies heten
+# de sleutels trigger/condition/action, `trigger:` heet `platform:` en
+# `action:` heet `service:`.
+# =============================================================================
+
+- id: airco_auto_uit_bij_lage_temperatuur
+  alias: Airco automatisch uit bij lage temperatuur
+  description: >-
+    Zet de airco uit wanneer het 90 minuten onafgebroken onder de 23 °C binnen
+    is én de buitentemperatuur niet boven de 25 °C komt. Droogstand (dry) wordt
+    met rust gelaten.
+
+  triggers:
+    # Eén gecombineerde template-trigger in plaats van twee losse numeric_state
+    # triggers: de `for` telt alleen door zolang *beide* voorwaarden waar
+    # blijven. Zo gaat de airco niet uit omdat het 90 minuten geleden toevallig
+    # even koel was, of omdat het buiten pas net is afgekoeld.
+    #
+    # De `| float(99)` maakt het faalveilig: is een sensor `unavailable` of
+    # `unknown`, dan wordt de template onwaar (99 is niet < 23 en niet <= 25)
+    # en blijft de airco met rust.
+    - trigger: template
+      value_template: >-
+        {{ states('sensor.kamer_temperatuur_luc')  | float(99) <  23
+           and states('sensor.buiten_temperatuur') | float(99) <= 25 }}
+      for:
+        hours: 1
+        minutes: 30
+
+  conditions:
+    - condition: template
+      alias: Airco staat daadwerkelijk aan
+      value_template: >-
+        {{ states('climate.airco_luc') not in ['off', 'unavailable', 'unknown'] }}
+
+    - condition: template
+      alias: Droogstand (dry) gewoon door laten lopen
+      value_template: "{{ states('climate.airco_luc') != 'dry' }}"
+
+  actions:
+    - action: climate.turn_off
+      target:
+        entity_id: climate.airco_luc
+
+    # Optioneel: laat Luc weten dat de airco is uitgezet. Haal het commentaar
+    # weg en vul je eigen notify-service in.
+    # - action: notify.mobile_app_luc
+    #   data:
+    #     title: Airco uitgezet
+    #     message: >-
+    #       Binnen {{ states('sensor.kamer_temperatuur_luc') }} °C, buiten
+    #       {{ states('sensor.buiten_temperatuur') }} °C — airco na 90 minuten
+    #       automatisch uitgeschakeld.
+
+  mode: single
