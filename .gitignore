@@ -1,0 +1,6 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Uitvoer van tools/rdi_callsign_check.py
+rdi_callsigns.csv
